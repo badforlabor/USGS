@@ -28,10 +28,17 @@ namespace Sample
             if (_mDem != null)
             {
                 var bitmap = new Bitmap(_mDem.ARecord.northings_rows, _mDem.ARecord.eastings_cols);
-                
+
+                List<List<int>> datas = new List<List<int>>();
+
                 for (int col = 0; col < _mDem.ARecord.eastings_cols; col++)
+                //for (int col = 0; col < 520; col++)
                 {
+                    var d = new List<int>();
+                    datas.Add(d);
+
                     for (int row = 0; row < _mDem.ARecord.northings_rows; row++)
+                    //for (int row = 0; row < 520; row++)
                     {
                         double height = _mDem.BRecord.elevations[col, row] * _mDem.ARecord.xyz_resolution[2];
                         var min = _mDem.ARecord.elevation_min;
@@ -39,15 +46,66 @@ namespace Sample
                         if (height >= min)
                         {
                             int ratio = (int)(((height - min) / (max - min)) * 255f);
-                            bitmap.SetPixel(row, col, Color.FromArgb(128, ratio, 128));
+                            bitmap.SetPixel(row, col, Color.FromArgb(ratio, ratio, ratio));
 
+                            d.Add((int)height);
                             // Or this, as suggested by thanaphan4 for fixing bitmap x/y orientation
                             // bitmap.SetPixel(col, _mDem.ARecord.northings_rows - row - 1, Color.FromArgb(128, 128, ratio));
+                        }
+                        else
+                        {
+                            d.Add((int)min);
                         }
                     }
                 }
 
+                bitmap.Save("1.bmp");
+
+                int a = 0, b = 0;
+                var str = new StringBuilder();
+                str.Append("{\"data\":[");
+                bool skip = false;
+                foreach (var it in datas)
+                {
+                    if(skip)
+                        str.Append(",");
+                    skip = true;
+                    str.Append("[");
+                    bool drop = false;
+                    foreach (var v in it)
+                    {
+                        if (v < a)
+                        {
+                            a = v;
+                        }
+                        if (v > b)
+                        {
+                            b = v;
+                        }
+                        if (drop)
+                        {
+                            str.Append(",");
+                        }
+                        str.Append("" + v);
+                        drop = true;
+                    }
+                    str.Append("]");
+                }
+                str.Append("]");
+                str.Append(",\"size\":{\"width\":");
+                str.Append("" + datas[0].Count);
+                str.Append(",\"height\":");
+                str.Append("" + datas.Count);
+                str.Append("},\"min\":");
+                str.Append("" + a);
+                str.Append(",\"max\":");
+                str.Append("" + b);
+                str.Append("}");
+
+                System.IO.File.WriteAllText("1.json", str.ToString());
+
                 _mPictureBox.Image = bitmap;
+                
             }
         }
 
